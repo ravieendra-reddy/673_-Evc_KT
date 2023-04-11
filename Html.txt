@@ -1,0 +1,90 @@
+<template>
+
+  
+  <lightning-card>
+    <c-ccxheadercmp></c-ccxheadercmp>
+    <br/>
+   <b><div style="text-align:center;"> <h1 style=" font-size: xx-large; color:rgb(255, 38, 0) "> Customer Bill</h1></div></b>
+   <br/>
+   <br/>
+  
+    <lightning-record-view-form
+    object-api-name="CCXR_Order__c"
+    record-id={order}
+  >
+  
+  <div class="slds-grid slds-gutters">
+  <div class="slds-col" >
+    <b>Order Date Time </b>
+  <span ><lightning-output-field field-name={Datetime} variant="label-hidden"></lightning-output-field></span>
+  </div>
+  <div class="slds-col">
+    <b>Order ID </b>
+  <span ><lightning-output-field field-name={Name} variant="label-hidden"> </lightning-output-field></span>
+  </div>
+  <div class="slds-col">
+    <b>Customer Name </b>
+  <span ><lightning-output-field field-name={Customer} variant="label-hidden"> </lightning-output-field></span>
+  </div>
+  <div class="slds-col">
+    <b>Table ID </b>
+  <span ><lightning-output-field field-name={Table} variant="label-hidden"> </lightning-output-field></span>
+  </div>
+  </div>
+  <br/>
+  <br/>
+  
+ 
+  
+
+  <div class="myTable">
+  <lightning-datatable  
+  
+   data={Orderlineitems} 
+   columns={columns} 
+  key-field="Id">
+
+  </lightning-datatable>
+</div>
+
+  <lightning-layout  >
+  
+    <table  class="slds-table slds-table_bordered slds-table_resizable-cols slds-table_fixed-layout slds-table_edit mystles" role="grid" style="width: 66.75rem ; ">
+      <tbody >
+  
+       <tr >   
+         <td></td> <td></td><td> </td> 
+          <td data-label="right1" style="text-align:right"><b>Grand Total: </b></td>
+          <td data-label="right2" style="text-align:right"><lightning-output-field field-name={grandtotal} variant="label-hidden" > </lightning-output-field> </td>
+      </tr>
+      <tr>    
+        <td></td> <td></td> <td></td>
+      
+        <td data-label="right3" style="text-align:right"><b>Tax: </b></td>
+         <td data-label="right4" style="text-align:right"> <lightning-output-field field-name={Tax} variant="label-hidden" > </lightning-output-field> </td>
+        </tr>
+    <tr>  
+      <td></td> <td></td> <td></td>
+   <td data-label="right5" style="text-align:right"><b>Discount: </b></td>
+   <td data-label="right6" style="text-align:right"> <lightning-output-field field-name={Discount} variant="label-hidden" > </lightning-output-field> </td>
+  </tr>
+  <tr>
+    <td></td> <td></td> <td></td>
+   <td data-label="right7" style="text-align:right"><b>Net Total: </b></td>
+   <td data-label="right8" style="text-align:right"> <lightning-output-field field-name={Nettotal} variant="label-hidden" > </lightning-output-field> </td>
+  </tr>
+  </tbody>
+  
+  </table>   
+  </lightning-layout>
+  </lightning-record-view-form>
+  <br/>
+<div class="p1">
+  <lightning-button label="Go to Payment" variant="success"  onclick={gotopayment}></lightning-button>
+  
+  &nbsp;&nbsp; &ensp; &ensp; 
+  <lightning-button variant="success"  label="Go to FeedBack" onclick={gotoFeedback}></lightning-button>
+</div>   
+  </lightning-card>
+           
+</template>
