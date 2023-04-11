@@ -1,0 +1,502 @@
+position data using Lightning crad
+
+
+<aura:component controller="Positionsdata">
+    <aura:attribute name="Position__c" type="List"/>
+    <lightning:button variant="success" label="Get Positions" title="Positions" onclick="{!c.getPositions}"/>
+    <aura:iteration items="{!v.Position__c}" var="p">
+ <lightning:card footer="{!p.Status__c}" title="PositionData">
+        <aura:set attribute="actions">
+            <lightning:button label="Get Positions"/>
+        </aura:set>
+        <p class="slds-p-horizontal_small">
+            <p>
+            Position Name::{!p.Name}<br/>
+            Position Status::{!p.Status__c}<br/>
+            Position Minpay::{!p.Min_Pay__c}<br/>
+        </p>
+        </p>
+     </lightning:card>
+        
+    </aura:iteration>
+</aura:component>
+
+
+
+
+({
+	getPositions : function(component, event, helper) {
+        var action=component.get('c.readpositions');
+        action.setCallback(this,function(response){
+            var status=response.getState();
+            var result=response.getReturnValue();
+            if(status=="SUCCESS"){
+                component.set('v.Position__c',result);
+            }
+        })
+        $A.enqueueAction(action);
+
+
+Controller
+public class Positionsdata {
+    @AuraEnabled
+    public static list<Position__c> readpositions(){
+        List<Position__c> pos=[select Name,Status__c,Min_Pay__c
+                              from Position__c limit 10];
+        return pos;
+    }
+
+}
+
+------------------------------------------------
+Conditional rendering
+
+<aura:component controller="ConditionalAccountController">
+<aura:attribute name="Accounts" type="List"/>
+<aura:attribute name="initDone" type="Boolean" default="false" />
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+
+    <ul>
+
+<aura:if isTrue="{!v.initDone}">
+  <aura:if isTrue="{!(v.Accounts.length >0)}">
+        <aura:iteration items="{!v.Accounts}" var="a">
+            {!a.Name}<br/>
+        </aura:iteration>
+        <aura:set attribute="else">                                               
+            <div >You don’t have any account. </div>
+        </aura:set>
+
+    </aura:if> 
+</aura:if>
+  </ul> 
+</aura:component>
+
+({
+	doInit : function(component, event) {
+    var action = component.get("c.findAll");
+    action.setCallback(this, function(a) {
+        component.set("v.Accounts", a.getReturnValue());
+        component.set("v.initDone","true");
+    });
+    $A.enqueueAction(action);
+}
+})
+
+Controller
+public class ConditionalAccountController {
+@AuraEnabled
+    public static List<Account> findAll() {
+       List<Account> accs= [select id, name FROM Account LIMIT 10];
+        return accs;
+    }
+}
+
+
+----------------------------------------------------------------------------------------------
+
+Acc Contact Data
+
+<aura:component controller="AccountController">
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:attribute name="gridColumns" type="List" />
+    <aura:attribute name="gridData" type="Object" />
+    <lightning:treeGrid columns="{! v.gridColumns }"
+        data="{! v.gridData }"
+        keyField="Id"
+        aura:id="mytree"
+    />
+</aura:component>
+
+({
+    doInit: function (cmp, event, helper) {
+        cmp.set('v.gridColumns', [
+            {label: 'Account Name', fieldName: 'Name', type: 'text'},
+            {label: 'Phone', fieldName: 'Phone', type: 'phone'},
+            ]);
+        ({
+    getAcctContacts : function (cmp) {
+        var action = cmp.get("c.getAccountContacts");
+        action.setCallback(this, function(response) {
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                var data = response.getReturnValue();
+                //Change "Contacts" key to "_children"
+                for(var i=0; i<data.length; i++) {
+                    data[i]._children = data[i]['Contacts'];
+                    delete data[i].Contacts;
+                }
+                cmp.set('v.gridData', data);
+            }
+            // error handling when state is "INCOMPLETE" or "ERROR"
+         });
+         $A.enqueueAction(action);
+    }
+})
+    }
+});
+
+
+Controller
+public class AccountController {
+@AuraEnabled
+    public static List<Account> getAccountContacts(){
+        List<Account> accountcontacts =
+            [SELECT Id, Name, Phone, (SELECT Contact.Name, Phone FROM contacts) FROM Account];
+        return accountcontacts;
+    }
+}
+--------------------------------------------------------------------------
+
+Searching
+
+
+<aura:component controller="CandidateCreation" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId" access="global" >
+    
+    <aura:attribute name="LastName" type="String"/>
+    <aura:attribute name="Email" type="String"/>
+    <lightning:navigation aura:id="navService"/>
+    
+    <p>Candidate  Creation and Navigate to Job Application</p>
+    
+    <lightning:input label="Last Name" placeholder="Enter Last Name" value="{!v.LastName}"/>
+    <lightning:input label="Email" placeholder="Enter Email " value="{!v.Email}"/>
+    
+    <lightning:button variant="success" label="CLick Here To Navigate to jobApp"  onclick="{!c.createCan}"/> <br/>
+    
+</aura:component>
+
+({
+    createCan : function(component, event, helper)
+    {
+        var lname=component.get('v.LastName');
+        var email=component.get('v.Email');
+        var navservice = component.find('navService');
+        var pageref={
+            type:'standard__objectPage',
+            attributes:{
+                objectApiName: 'Job_Application__c',
+                actionName: 'list'
+            },
+            state:{
+                filterName:'All'
+            }
+        };
+        
+        var action = component.get('c.createCand');	
+        
+        action.setParams
+        ({
+            ln:lname,
+            email:email
+        });
+        action.setCallback(this,function(response)
+                           {
+                               var Status=response.getState();
+                               var Result=response.getReturnValue();
+                               alert(Status)
+                               if(Status=="SUCCESS")
+                               {
+                                   alert('Candidate Created Successfully');
+                                   navservice.navigate(pageref);
+        
+                               }
+                               
+                           });
+        
+        $A.enqueueAction(action);
+    }
+})
+
+
+Controller
+public class CandidateCreation {
+@AuraEnabled
+    public static Candidate_Label__c createCand(string ln,string email)
+    {
+        Candidate_Label__c c =new Candidate_Label__c();
+        c.Last_Name__c=ln;
+        c.Email__c=email;
+        
+        insert c;
+        
+        return c;
+    }
+}
+
+------------------------------------------------------------------------------------------
+
+Record form
+
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+   
+    <aura:attribute name="fields" type="String[]" default="['Name','Status__c','FUNCTIONAL_AREA__c','JOB_LEVEL__c',
+                                                           'TYPE__c','Location__c','Hiring_manager__c','Max_Pay__c','Min_Pay__c',
+                                                           'Open_Date__c','Position_Age__c',' Days_open__c','Average__c','B_TECH__c','Close_Date__c',
+                                                           'Educational_Requirement__c','Updatedetails__c']" />
+   
+    <lightning:recordForm
+                          aura:id="myRecordForm"
+                          recordId="{!v.recordId}"
+                          objectApiName="Position__c"
+                          fields="{!v.fields}"
+                          columns="2"
+                          mode="edit"
+                          onsubmit="{!c.handleSubmit}"
+                          />
+</aura:component>
+
+-------------------------------------------------------------------------------------------------------
+Delete Records
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" >
+    <aura:attribute name="recordError" type="String" />
+    <force:recordData 
+                      aura:id="deleteRecord"
+                      recordId="{!v.recordId}"
+                      fields="Id"
+                      mode="EDIT"
+                      targetError="{!v.recordError}"
+                      />
+    <b>
+        Deleting EmploymentWebsiteRecord Using force:Recordform
+    </b><br/>
+    <lightning:button variant="Brand" label="Delete EmplomentWebsite" onclick="{!c.deleteemploymentwebsite}"/>
+    <aura:if isTrue="{!not(empty(v.recordError))}">
+        {!v.recordError}
+    </aura:if>
+</aura:component>
+
+
+({
+	deleteemploymentwebsite : function(cmp, event, helper) {
+        cmp.find("deleteRecord").deleteRecord($A.getCallback(function(saveResult){
+            if(saveResult.state=="SUCCESS" || saveResult.state=="DRAFT")
+            {
+              alert("EmploymentWebsite record deleted successfully");  
+            }
+            else if(saveResult.state=="INCOMPLETE"){
+               alert("Error in deleting EmploymentWebsite record "); 
+            }else{
+                alert("Problem in Deleting EmploymentWebsite record "+JSON.stringify(saveresult.error)); 
+            }
+            
+        }));
+
+	}
+})
+
+-----------------------------------------------------------------------------------------------------------------
+Aura method
+
+<aura:component >
+    <aura:attribute name="parentattr" type="String" default="Hello From parent" />
+    <b>
+        value from parent attribute::{!v.parentattr}
+    </b><br/><br/>
+    <b>calling child component::</b><br/>
+    <c:LC_Aurachild aura:id="auraChild"/>
+    <lightning:button variant="success" label="call child Method" onclick="{!c.gotoAuraMethod}"/>
+</aura:component>
+
+({
+	gotoAuraMethod : function(component, event, helper) {
+		var childcomp=component.find("auraChild");
+        var parentval=component.get("v.parentattr");
+        var result=childcomp.testMethod('parentvalue');
+        component.set('v.parentattr',result);
+	}
+})
+
+------------------------------------------------------------------------------
+Search Interface
+<aura:component controller="Day56LCW4_SearchPositions_Controller">
+    <aura:attribute name="Positions" type="list"/>
+    <aura:attribute name="Plocation" type="String"/>
+    <div>
+        <lightning:input name="location" label="location" placeholder="Input location to search" value="{!v.Plocation}" /><br/>
+    </div>
+    <lightning:button variant="brand" label="Get Position Records" title="Positions" onclick="{!c.searchPositions}"/><br/>
+    <br/>
+    <b>  Position information::</b><br/><br/><br/>
+    <div class="slds-grid slds-wrap">
+        <aura:iteration items="{!v.Positions}" var="l"><br/><br/>
+            <div class="slds-col slds-size_1-of-4 slds-p-around_medium">
+                <lightning:card>
+                    <aura:set attribute="title">
+                        <lightning:icon iconName="standard:approval" size="small"/>
+                        {!l.Name}
+                    </aura:set>
+                    <aura:set attribute="footer">
+                       
+                        {!l.Location__c}
+                    </aura:set>
+                    <aura:set attribute="actions">
+                        <Lightning:button variant="brand" label="detail" title="Positions" onclick="{!c.searchPositions}"/>
+                    </aura:set>
+                    <p>
+                        <b>{!l.Name}</b><br/>
+                        {!l.FUNCTIONAL_AREA__c}<br/>
+                    </p>
+                   
+                   
+                </lightning:card>
+            </div>
+        </aura:iteration>
+    </div>
+   
+</aura:component>
+
+<aura:component controller="Day56LCW4_SearchPositions_Controller">
+    <aura:attribute name="Positions" type="list"/>
+    <aura:attribute name="Plocation" type="String"/>
+    <div>
+        <lightning:input name="location" label="location" placeholder="Input location to search" value="{!v.Plocation}" /><br/>
+    </div>
+    <lightning:button variant="brand" label="Get Position Records" title="Positions" onclick="{!c.searchPositions}"/><br/>
+    <br/>
+    <b>  Position information::</b><br/><br/><br/>
+    <div class="slds-grid slds-wrap">
+        <aura:iteration items="{!v.Positions}" var="l"><br/><br/>
+            <div class="slds-col slds-size_1-of-4 slds-p-around_medium">
+                <lightning:card>
+                    <aura:set attribute="title">
+                        <lightning:icon iconName="standard:approval" size="small"/>
+                        {!l.Name}
+                    </aura:set>
+                    <aura:set attribute="footer">
+                       
+                        {!l.Location__c}
+                    </aura:set>
+                    <aura:set attribute="actions">
+                        <Lightning:button variant="brand" label="detail" title="Positions" onclick="{!c.searchPositions}"/>
+                    </aura:set>
+                    <p>
+                        <b>{!l.Name}</b><br/>
+                        {!l.FUNCTIONAL_AREA__c}<br/>
+                    </p>
+                   
+                   
+                </lightning:card>
+            </div>
+        </aura:iteration>
+    </div>
+   
+</aura:component>
+------------------------------------------------
+Event Handler
+
+Parent
+<aura:component >
+    <aura:handler  event="c:LC_AppEvent" action="{!c.handlefromchild}"/>
+    <aura:attribute name="parentMessage" type="String"/>
+    <b>
+        {!v.parentMessage}
+    </b>
+</aura:component>
+
+({
+	handlefromchild : function(component, event, helper) {
+        alert('hi from jagadessh');
+        var valfromEvnt=event.getParam('storeMessage');
+        alert(valfromEvnt);
+        component.set('v.parentMessage',valfromEvnt);
+		
+	}
+})
+
+Child Component'
+
+
+<aura:component >
+    <aura:registerEvent name="regInChild" type="c:LC_AppEvent"/>
+    <aura:attribute name="textMessage" type="String" default="from child comp"/>
+   <lightning:button variant="brand" label="click here" onclick="{!c.handleEvent}"/>                                                    
+	
+</aura:component>
+
+({
+	handleEvent : function(component, event, helper) {
+        var appEvt=$A.get('e.c:LC_AppEvent');
+        appEvt.setParams({
+            storeMessage:component.get('v.textMessage')
+            
+        });
+       appEvt.fire(); 
+		
+	}
+})
+
+-----------------------------------------
+Search Interface
+<aura:component controller="Day56LCW4_SearchPositions_Controller">
+    <aura:attribute name="Positions" type="list"/>
+    <aura:attribute name="Plocation" type="String"/>
+    <div>
+        <lightning:input name="location" label="location" placeholder="Input location to search" value="{!v.Plocation}" /><br/>
+    </div>
+    <lightning:button variant="brand" label="Get Position Records" title="Positions" onclick="{!c.searchPositions}"/><br/>
+    <br/>
+    <b>  Position information::</b><br/><br/><br/>
+    <div class="slds-grid slds-wrap">
+        <aura:iteration items="{!v.Positions}" var="l"><br/><br/>
+            <div class="slds-col slds-size_1-of-4 slds-p-around_medium">
+                <lightning:card>
+                    <aura:set attribute="title">
+                        <lightning:icon iconName="standard:approval" size="small"/>
+                        {!l.Name}
+                    </aura:set>
+                    <aura:set attribute="footer">
+                       
+                        {!l.Location__c}
+                    </aura:set>
+                    <aura:set attribute="actions">
+                        <Lightning:button variant="brand" label="detail" title="Positions" onclick="{!c.searchPositions}"/>
+                    </aura:set>
+                    <p>
+                        <b>{!l.Name}</b><br/>
+                        {!l.FUNCTIONAL_AREA__c}<br/>
+                    </p>
+                   
+                   
+                </lightning:card>
+            </div>
+        </aura:iteration>
+    </div>
+   
+</aura:component>
+
+({
+searchPositions : function(component, event, helper)
+    {
+        var lstr = component.get('v.Plocation');
+        var action =component.get('c.readPositions');
+        action.setParams({
+           searchpositionloc :lstr
+        })
+        action.setCallback('this',function(Response)
+                           {
+                               var status = Response.getState();
+                               var result= Response.getReturnValue();
+                               if(status=="SUCCESS")
+                               {
+                                   component.set('v.Positions',result)
+                               }
+                           });
+        $A.enqueueAction(action);
+
+}
+})
+
+Controller
+public class Day56LCW4_SearchPositions_Controller {
+@AuraEnabled
+     public static list<Position__c> readPositions(string searchpositionloc)
+    {
+        string searchposloc = searchpositionloc;
+        list<Position__c> l1 =[select Name,FUNCTIONAL_AREA__c,Location__c
+                               from Position__c
+                               where Location__c=:searchpositionloc ];
+        return l1;
+    }
+}
+
